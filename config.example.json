@@ -1,0 +1,23 @@
+{
+  "title": "Certificates",
+  "listenAddr": "127.0.0.1:8796",
+  "refreshInterval": "6h",
+  "connectTimeout": "10s",
+  "defaultWarningDays": 30,
+  "defaultCriticalDays": 7,
+  "targets": [
+    {
+      "name": "Example",
+      "url": "https://example.com",
+      "enabled": true
+    },
+    {
+      "name": "Example API",
+      "url": "https://api.example.com:443",
+      "serverName": "api.example.com",
+      "warningDays": 21,
+      "criticalDays": 5,
+      "enabled": true
+    }
+  ]
+}

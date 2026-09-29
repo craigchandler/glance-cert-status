@@ -1,0 +1,5 @@
+/cert-status
+/dist/
+/.env
+/config.json
+/cert-status.json

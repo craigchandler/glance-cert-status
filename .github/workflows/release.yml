@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Ship a supported Go runtime instead of the Go 1.22 language minimum.
+          go-version: stable
+          cache: false
+      - name: Test
+        run: |
+          test -z "$(gofmt -l cmd)"
+          go test ./...
+          go vet ./...
+      - name: Build release binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          NAME="cert-status-${GOOS}-${GOARCH}"
+          mkdir -p dist
+          go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o "dist/${NAME}" ./cmd/cert-status
+          cd dist
+          sha256sum "$NAME" > "$NAME.sha256"
+          sha256sum -c "$NAME.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cert-status-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/cert-status-${{ matrix.goos }}-${{ matrix.goarch }}
+            dist/cert-status-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cert-status-*
+          merge-multiple: true
+      - name: Verify downloaded assets
+        run: sha256sum -c cert-status-linux-amd64.sha256 cert-status-linux-arm64.sha256
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            cert-status-linux-amd64
+            cert-status-linux-amd64.sha256
+            cert-status-linux-arm64
+            cert-status-linux-arm64.sha256

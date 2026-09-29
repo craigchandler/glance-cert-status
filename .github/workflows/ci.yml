@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Keep release/runtime security fixes current; go.mod sets the language minimum.
+          go-version: stable
+          cache: false
+      - run: test -z "$(gofmt -l cmd)"
+      - run: go test ./...
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: go build ./cmd/cert-status
+      - run: sh -n scripts/install-release.sh && sh -n scripts/install-systemd.sh
